@@ -1,0 +1,5 @@
+{
+    "indexController": {
+        "class": "RIP\\Bundles\\Index\\IndexController"
+    }
+}

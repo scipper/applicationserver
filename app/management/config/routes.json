@@ -1,0 +1,8 @@
+[
+    {
+        "url": "/",
+        "controller": "rip.controller.indexController",
+        "action": "indexAction",
+        "method": "GET"
+    }
+]
