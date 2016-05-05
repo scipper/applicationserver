@@ -18,12 +18,9 @@ interface ExecutableInterface {
     public function init();
 
     /**
-     * @param $url
-     * @param $method
-     *
      * @return boolean
      */
-    public function handleRequest($url, $method);
+    public function handleRequest();
 
     /**
      * @return boolean

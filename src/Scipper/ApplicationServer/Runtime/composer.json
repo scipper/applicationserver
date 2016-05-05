@@ -1,0 +1,15 @@
+{
+    "name": "scipper/runtime",
+    "description": "PHP Application Server - Runtime",
+    "type": "package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "scipper",
+            "email": "scipper@myscipper.de"
+        }
+    ],
+    "require": {
+        "php": ">=5.6"
+    }
+}
