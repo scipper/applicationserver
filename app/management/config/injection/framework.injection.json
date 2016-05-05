@@ -1,0 +1,57 @@
+{
+    "server": {
+        "class": "RIP\\Components\\Framework\\Core\\Server"
+    },
+    "request": {
+        "class": "RIP\\Components\\Framework\\Core\\Request"
+    },
+    "response": {
+        "class": "Scipper\\ApplicationServer\\Management\\RESTInPHPCustomization\\Response"
+    },
+    "injector": {
+        "class": "RIP\\Components\\DependencyInjection\\DefaultInjector"
+    },
+    "router": {
+        "class": "RIP\\Components\\Framework\\Core\\Router"
+    },
+    "kernel": {
+        "class": "RIP\\Components\\Framework\\Core\\Kernel",
+        "dependencies": [
+            {
+                "name": "framework.server",
+                "state": "new"
+            },
+            {
+                "name": "framework.request",
+                "state": "new"
+            },
+            {
+                "name": "framework.response",
+                "state": "new"
+            }
+        ]
+    },
+    "application": {
+        "class": "RIP\\Components\\Framework\\Core\\Application",
+        "dependencies": [
+            {
+                "name": "framework.kernel",
+                "state": "new"
+            },
+            {
+                "name": "framework.injector",
+                "state": "stored"
+            },
+            {
+                "name": "framework.router",
+                "state": "stored"
+            }
+        ]
+    },
+    "logger": {
+        "class": "RIP\\Components\\Framework\\Core\\Logger"
+    },
+    "errorController": {
+        "class": "RIP\\Bundles\\Error\\ErrorController"
+    }
+}

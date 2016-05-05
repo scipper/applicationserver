@@ -1,0 +1,5 @@
+{
+    "entitymanager": {
+        "class": "Doctrine\\ORM\\EntityManager"
+    }
+}
