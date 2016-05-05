@@ -1,0 +1,10 @@
+.settings
+.buildpath
+.project
+.idea
+vendor
+access.log
+error.log
+custom_error_log.txt
+composer.lock
+docs/api
