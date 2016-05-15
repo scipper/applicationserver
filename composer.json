@@ -12,7 +12,8 @@
     "require": {
         "php": ">=5.6",
         "scipper/classloader": "^1.0",
-        "restinphp/restinphp": "dev-0.1-alpha"
+        "restinphp/restinphp": "dev-0.1-alpha",
+        "scipper/colorizer": "dev-master"
     },
     "autoload": {
         "psr-4": { "Scipper\\": "src/Scippper/" }

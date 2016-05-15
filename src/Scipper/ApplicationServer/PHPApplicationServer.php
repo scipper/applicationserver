@@ -2,14 +2,15 @@
 
 namespace Scipper\ApplicationServer;
 
-use RIP\RESTInPHP;
-use Scipper\ApplicationServer\Management\ManagementLoader;
+use Scipper\ApplicationServer\Network\Listener\ListenerManager;
 use Scipper\ApplicationServer\Network\Request;
-use Scipper\ApplicationServer\Network\Socket\ClientThread;
-use Scipper\ApplicationServer\Network\Socket\ServerSocket;
-use Scipper\ApplicationServer\Network\Socket\SocketList;
+use Scipper\ApplicationServer\Stream\Output\Message;
+use Scipper\ApplicationServer\Stream\Output\MessageProvider;
+use Scipper\ApplicationServer\Stream\Output\MessageQueue;
 use Scipper\ApplicationServer\System\Process\SignalHandler;
+use Scipper\ApplicationServer\Tools\Performance\LoadMonitor;
 use Scipper\ApplicationServer\Tools\Performance\Timer;
+use Scipper\Colorizer\Colorizer;
 
 /**
  * Class PHPAppicationServer
@@ -22,92 +23,94 @@ use Scipper\ApplicationServer\Tools\Performance\Timer;
 class PHPApplicationServer {
 
     /**
-     * @var SignalHandler
-     */
-    protected $signalHandler;
-
-    /**
      * @var boolean
      */
     protected $running;
 
     /**
-     * @var SocketList
+     * @var SignalHandler
      */
-    protected $socketList;
+    protected $signalHandler;
 
     /**
-     * @var ServerSocket
+     * @var Colorizer
      */
-    protected $managementSocket;
+    protected $colorizer;
 
     /**
-     * @var array
+     * @var MessageProvider
      */
-    protected $managementClients;
+    protected $messageProvider;
 
     /**
-     * @var array
+     * @var ListenerManager
      */
-    protected $managementClientThreads;
+    protected $listenerManager;
 
     /**
-     * @var ManagementLoader
+     * @var integer
      */
-    protected $managementLoader;
+    protected $systemStartTime;
 
     /**
-     * @var RESTInPHP
+     * @var LoadMonitor
      */
-    protected $managementServer;
+    protected $loadMonitor;
 
 
     /**
      * PHPApplicationServer constructor.
-     *
-     * @param SignalHandler $signalHandler
-     * @param ServerSocket $managementSocket
-     * @param SocketList $socketList
-     * @param ManagementLoader $managementLoader
      */
-    public function __construct(SignalHandler $signalHandler, ServerSocket $managementSocket, SocketList $socketList, ManagementLoader $managementLoader) {
-        $this->signalHandler = $signalHandler;
+    public function __construct() {
         $this->running = false;
-        $this->managementSocket = $managementSocket;
-        $this->managementClients = array();
-        $this->managementClientThreads = array();
-        $this->socketList = $socketList;
-        $this->managementLoader = $managementLoader;
-        $this->managementServer = null;
+
+        $this->signalHandler = new SignalHandler();
+        $this->colorizer = new Colorizer();
+        $this->messageProvider = new MessageProvider($this->colorizer, new MessageQueue());
+        $this->listenerManager = new ListenerManager($this->messageProvider);
+        $this->systemStartTime = time();
+        $this->loadMonitor = new LoadMonitor();
     }
 
     /**
      *
      */
     public function boot() {
-        register_shutdown_function(array($this, "destroy"));
+        $this->messageProvider->getWelcomeMessage();
+        $this->messageProvider->getBootMessage();
 
-        $this->managementSocket->open();
-        $this->managementServer = $this->managementLoader->getManagementServerInstance();
-        $this->managementServer->boot();
+        register_shutdown_function(array($this, "shutdown"));
+
     }
 
     /**
      * @throws Network\Socket\Exceptions\NoResourceException
      */
     public function run() {
+        $this->messageProvider->getReadyMessage();
+
         $timer = new Timer();
+        $timerCount = 0.0;
 
         $this->running = true;
 
+        //stream_set_blocking(STDIN, 0);
+
         while($this->running) {
             $timer->update();
+            $this->messageProvider->update($timer->getElapsed());
+
+            $this->messageProvider->getFirstMessage();
+
+            $timerCount += $timer->getElapsed();
+            //$c = stream_get_contents(STDIN);
 
             if($this->signalHandler->getSignal() == SignalHandler::SIGNAL_HANDLER_SHUTDOWN) {
                 $this->running = false;
                 break;
             }
 
+            /*
             $this->socketList->tryNewSocket($this->managementSocket->waitForConnection());
 
             foreach($this->socketList as $k => $clientSocket) {
@@ -133,12 +136,42 @@ class PHPApplicationServer {
                 $this->socketList->close($clientThread->getSocket());
                 unset($this->managementClientThreads[$k]);
             }
+            */
 
+            if($timerCount >= 1) {
+                $timerCount -= 1;
 
-            echo $timer->getElapsed() . "\r";
+                $this->messageProvider->addMessage(new Message($this->colorizer, ""));
+                $this->messageProvider->getFirstMessage(true);
+
+                $message = new Message($this->colorizer);
+
+                //Latency
+                $message->setKeyValueCombinesMessage("Latency: ", $timer->getAverageTimePerTick());
+                $this->messageProvider->addMessage($message);
+                $this->messageProvider->getFirstMessage(true);
+
+                //Systemtime
+                $message->setKeyValueCombinesMessage("System time: ", date("Y-m-d H:i:s"));
+                $this->messageProvider->addMessage($message);
+                $this->messageProvider->getFirstMessage(true);
+
+                //Uptime
+                $message->setKeyValueCombinesMessage("Uptime: ", gmdate("H:i:s", time() - $this->systemStartTime));
+                $this->messageProvider->addMessage($message);
+                $this->messageProvider->getFirstMessage(true);
+
+                //System Load
+                $message->setKeyValueCombinesMessage("System Load: ", $this->loadMonitor->getServerLoad());
+                $this->messageProvider->addMessage($message);
+                $this->messageProvider->getFirstMessage(true);
+
+                $this->messageProvider->addMessage(new Message($this->colorizer, $this->colorizer->linesUp(6)));
+                $this->messageProvider->getFirstMessage(true);
+            }
 
             //wait until 1 ms is over
-            //performance tweek, DO NOT REMOVE
+            //performance tweak, DO NOT REMOVE
             $timer->adjust();
         }
     }
@@ -147,7 +180,15 @@ class PHPApplicationServer {
      *
      */
     public function shutdown() {
-        echo "shutdown" . PHP_EOL;
+        $this->messageProvider->addMessage(new Message($this->colorizer, $this->colorizer->linesDown(6)));
+        $this->messageProvider->getFirstMessage(true);
+
+        $msg = new Message($this->colorizer);
+        $msg->setMessage("Shutting down ...", Colorizer::FG_ORANGE);
+        $this->messageProvider->addMessage($msg);
+        $this->messageProvider->getFirstMessage(true);
+
+        $this->listenerManager->shutdown();
 
         posix_kill(posix_getpid(), SIGUSR1);
     }
@@ -155,10 +196,14 @@ class PHPApplicationServer {
     /**
      *
      */
-    public function destroy() {
-        $this->managementSocket->destroy();
+    public function __destruct() {
 
-        echo "destroy" . PHP_EOL;
+        $msg = new Message($this->colorizer);
+        $msg->setMessage("Destructor called ...", Colorizer::FG_ORANGE);
+        $this->messageProvider->addMessage($msg);
+        $this->messageProvider->getFirstMessage(true);
+
+        $this->shutdown();
     }
 
 }

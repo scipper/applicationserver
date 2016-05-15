@@ -1,16 +1,16 @@
 <?php
 
-namespace Scipper\ApplicationServer\Network\Socket;
+namespace Scipper\ApplicationServer\Network\Listener;
 
 /**
- * Class Socket
+ * Class Listener
  *
  * @author Steffen Kowalski <scipper@myscipper.de>
  *
- * @namespace Scipper\ApplicationServer\Network\Socket
- * @package Scipper\ApplicationServer\Network\Socket
+ * @namespace Scipper\ApplicationServer\Network\Listener
+ * @package Scipper\ApplicationServer\Network\Listener
  */
-class ServerSocket {
+class Listener {
 
     /**
      * @var resource
@@ -29,7 +29,7 @@ class ServerSocket {
 
 
     /**
-     * SocketServer constructor.
+     * Listener constructor.
      *
      * @param string $address
      * @param int $port

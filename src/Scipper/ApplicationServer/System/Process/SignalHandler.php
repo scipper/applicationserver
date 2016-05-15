@@ -50,19 +50,19 @@ class SignalHandler {
 
         switch ($signal) {
             case SIGTERM:
-                echo "exit" . PHP_EOL;
+                //echo "exit" . PHP_EOL;
                 break;
             case SIGINT:
-                echo "CTRL + C" . PHP_EOL;
+                //echo "CTRL + C" . PHP_EOL;
                 break;
             case SIGHUP:
-                echo "reboot" . PHP_EOL;
+                //echo "reboot" . PHP_EOL;
                 break;
             case SIGUSR1:
-                echo "Caught SIGUSR1...\n";
+                //echo "Caught SIGUSR1...\n";
                 break;
             default:
-                echo "something else" . PHP_EOL;
+                //echo "something else" . PHP_EOL;
         }
 
         $this->signal = self::SIGNAL_HANDLER_SHUTDOWN;

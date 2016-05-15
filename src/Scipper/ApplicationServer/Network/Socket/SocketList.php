@@ -49,8 +49,6 @@ class SocketList implements \Iterator {
 
         $this->add($socket);
 
-        echo "client connected: " . "(" . $socket . ") " . count($this->socketList) . PHP_EOL;
-
         return true;
     }
 

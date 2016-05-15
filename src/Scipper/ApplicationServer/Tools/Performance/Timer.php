@@ -16,19 +16,24 @@ class Timer {
      *
      * @var float
      */
-    private $currentTime;
+    protected $currentTime;
 
     /**
      *
      * @var float
      */
-    private $lastTime;
+    protected $lastTime;
 
     /**
      *
      * @var float
      */
-    private $elapsed;
+    protected $elapsed;
+
+    /**
+     * @var array
+     */
+    protected $elapsedSum;
 
 
     /**
@@ -38,6 +43,7 @@ class Timer {
         $this->currentTime = 0.0;
         $this->lastTime = $this->microtime();
         $this->elapsed = 0.0;
+        $this->elapsedSum = array();
     }
 
     /**
@@ -55,6 +61,13 @@ class Timer {
         $this->currentTime = $this->microtime();
         $this->elapsed = $this->currentTime - $this->lastTime;
         $this->lastTime = $this->currentTime;
+
+        array_push($this->elapsedSum, $this->elapsed);
+
+        if(array_sum($this->elapsedSum) > .01) {
+            array_shift($this->elapsedSum);
+        }
+        array_push($this->elapsedSum, $this->elapsed);
     }
     /**
      *
@@ -62,6 +75,13 @@ class Timer {
      */
     public function getElapsed() {
         return $this->elapsed;
+    }
+
+    /**
+     * @return float
+     */
+    public function getAverageTimePerTick() {
+        return number_format((array_sum($this->elapsedSum) / count($this->elapsedSum) * 1000), 4) . " ms      ";
     }
 
     /**
