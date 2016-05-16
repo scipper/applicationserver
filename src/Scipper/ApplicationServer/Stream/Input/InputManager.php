@@ -2,6 +2,8 @@
 
 namespace Scipper\ApplicationServer\Stream\Input;
 
+use Scipper\ApplicationServer\Stream\Input\Exceptions\MappingNotFoundException;
+
 /**
  * Class InputManager
  *
@@ -36,52 +38,81 @@ class InputManager {
     }
     /**
      *
-     * @param KeyMapperInterface $key
+     * @param string $key
      * @param \Closure $action
      */
-    public function addMapping(KeyMapperInterface $key, \Closure $action) {
-        $this->mappings[$key->getKey()] = $action;
+    public function addMapping($key, \Closure $action) {
+        $this->mappings[(string) $key] = $action;
     }
 
     /**
      *
-     * @param KeyMapperInterface $key
+     * @param string $key
      */
-    public function removeMapping(KeyMapperInterface $key) {
+    public function removeMapping($key) {
         if($this->mappingExists($key)) {
-            unset($this->mappings[$key->getKey()]);
+            unset($this->mappings[(string) $key]);
         }
     }
 
     /**
      *
-     * @param KeyMapperInterface $key
+     * @param string $key
      * @return boolean
      */
-    private function mappingExists(KeyMapperInterface $key) {
-        return array_key_exists($key->getKey(), $this->mappings);
+    protected function mappingExists($key) {
+        return isset($this->mappings[(string) $key]);
     }
 
     /**
      *
-     * @param KeyMapperInterface $key
+     * @param string $key
      * @return \Closure
      */
-    private function getMapping(KeyMapperInterface $key) {
+    protected function getMapping($key) {
         if($this->mappingExists($key)) {
-            return $this->mappings[$key->getKey()];
+            return $this->mappings[(string) $key];
         }
         return NULL;
     }
 
     /**
-     *
+     * @return array
+     */
+    public function listMappings() {
+        return array_keys($this->mappings);
+    }
+
+    /**
      * @param float $tpf
+     *
+     * @return bool
+     * @throws MappingNotFoundException
      */
     public function listen($tpf) {
-        if($this->inputEventListener->listen() && $this->inputEventListener->getKey() !== null) {
-            $this->delegateEvent($this->getMapping($this->inputEventListener->getKey()), $tpf);
+        if($this->inputEventListener->listen() &&
+            $this->inputEventListener->getStream() !== null) {
+            if(empty($this->inputEventListener->getStream())) {
+                return true;
+            }
+
+            $mapping = $this->getMapping($this->inputEventListener->getStream());
+            if(is_null($mapping)) {
+                throw new MappingNotFoundException($this->inputEventListener->getStream());
+            }
+
+            $this->delegateEvent($mapping, $tpf);
+            return true;
         }
+
+        return false;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getStreamData() {
+        return $this->inputEventListener->getStream();
     }
 
     /**
@@ -89,10 +120,8 @@ class InputManager {
      * @param \Closure|NULL $mapping
      * @param float $tpf
      */
-    private function delegateEvent($mapping, $tpf) {
-        if(!is_null($mapping)) {
-            $mapping($tpf);
-        }
+    protected function delegateEvent($mapping, $tpf) {
+        $mapping($tpf);
 
         $this->inputEventListener->reset();
     }

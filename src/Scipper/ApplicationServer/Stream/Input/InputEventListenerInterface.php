@@ -19,16 +19,9 @@ interface InputEventListenerInterface {
     public function listen();
 
     /**
-     *
-     * @param KeyMapperInterface $key
+     * @return string
      */
-    public function setKey(KeyMapperInterface $key);
-
-    /**
-     *
-     * @return KeyMapperInterface
-     */
-    public function getKey();
+    public function getStream();
 
     /**
      *

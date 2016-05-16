@@ -4,13 +4,16 @@ namespace Scipper\ApplicationServer;
 
 use Scipper\ApplicationServer\Network\Listener\ListenerManager;
 use Scipper\ApplicationServer\Network\Request;
+use Scipper\ApplicationServer\Stream\Input\InputManager;
+use Scipper\ApplicationServer\Stream\Input\StdEventListener;
 use Scipper\ApplicationServer\Stream\Output\Message;
 use Scipper\ApplicationServer\Stream\Output\MessageProvider;
 use Scipper\ApplicationServer\Stream\Output\MessageQueue;
+use Scipper\ApplicationServer\System\CommandLine\CommandLine;
 use Scipper\ApplicationServer\System\Process\SignalHandler;
-use Scipper\ApplicationServer\Tools\Performance\LoadMonitor;
 use Scipper\ApplicationServer\Tools\Performance\Timer;
 use Scipper\Colorizer\Colorizer;
+use Symfony\Component\Console\Input\Input;
 
 /**
  * Class PHPAppicationServer
@@ -53,9 +56,9 @@ class PHPApplicationServer {
     protected $systemStartTime;
 
     /**
-     * @var LoadMonitor
+     * @var CommandLine
      */
-    protected $loadMonitor;
+    protected $commandLine;
 
 
     /**
@@ -66,18 +69,41 @@ class PHPApplicationServer {
 
         $this->signalHandler = new SignalHandler();
         $this->colorizer = new Colorizer();
-        $this->messageProvider = new MessageProvider($this->colorizer, new MessageQueue());
+        $this->messageProvider = new MessageProvider(new MessageQueue());
         $this->listenerManager = new ListenerManager($this->messageProvider);
         $this->systemStartTime = time();
-        $this->loadMonitor = new LoadMonitor();
+        $this->commandLine = new CommandLine($this, $this->messageProvider, new InputManager(new StdEventListener()), $this->colorizer);
     }
 
     /**
      *
      */
     public function boot() {
-        $this->messageProvider->getWelcomeMessage();
-        $this->messageProvider->getBootMessage();
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("Welcome to  "));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("PHP Application Server ", Colorizer::FG_GREEN));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("Booting ..."));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+
+        $this->messageProvider->publishAll();
+
+        /*
+        $this->inputManager->addMapping("quit", function() {
+            $this->running = false;
+        });
+        $this->inputManager->addMapping("add listener", function() {
+            $this->listenerManager->addListener("127.0.0.1", 3000);
+            $this->listenerManager->startListener("127.0.0.1", 3000);
+        });
+        */
+
+        $this->commandLine->initializeCommands();
+        $this->commandLine->assignToInputManager();
 
         register_shutdown_function(array($this, "shutdown"));
 
@@ -87,28 +113,32 @@ class PHPApplicationServer {
      * @throws Network\Socket\Exceptions\NoResourceException
      */
     public function run() {
-        $this->messageProvider->getReadyMessage();
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage(""));
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("PHP Application Server is up and running"));
+
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtInput());
+
+        $this->messageProvider->publishAll();
 
         $timer = new Timer();
         $timerCount = 0.0;
 
         $this->running = true;
 
-        //stream_set_blocking(STDIN, 0);
-
         while($this->running) {
             $timer->update();
             $this->messageProvider->update($timer->getElapsed());
-
             $this->messageProvider->getFirstMessage();
 
+            $this->commandLine->listen($timer->getElapsed());
+
             $timerCount += $timer->getElapsed();
-            //$c = stream_get_contents(STDIN);
 
             if($this->signalHandler->getSignal() == SignalHandler::SIGNAL_HANDLER_SHUTDOWN) {
                 $this->running = false;
                 break;
             }
+
 
             /*
             $this->socketList->tryNewSocket($this->managementSocket->waitForConnection());
@@ -138,37 +168,39 @@ class PHPApplicationServer {
             }
             */
 
+            /*
             if($timerCount >= 1) {
                 $timerCount -= 1;
 
-                $this->messageProvider->addMessage(new Message($this->colorizer, ""));
-                $this->messageProvider->getFirstMessage(true);
-
-                $message = new Message($this->colorizer);
-
-                //Latency
-                $message->setKeyValueCombinesMessage("Latency: ", $timer->getAverageTimePerTick());
-                $this->messageProvider->addMessage($message);
-                $this->messageProvider->getFirstMessage(true);
-
-                //Systemtime
-                $message->setKeyValueCombinesMessage("System time: ", date("Y-m-d H:i:s"));
-                $this->messageProvider->addMessage($message);
-                $this->messageProvider->getFirstMessage(true);
-
-                //Uptime
-                $message->setKeyValueCombinesMessage("Uptime: ", gmdate("H:i:s", time() - $this->systemStartTime));
-                $this->messageProvider->addMessage($message);
-                $this->messageProvider->getFirstMessage(true);
-
-                //System Load
-                $message->setKeyValueCombinesMessage("System Load: ", $this->loadMonitor->getServerLoad());
-                $this->messageProvider->addMessage($message);
-                $this->messageProvider->getFirstMessage(true);
 
                 $this->messageProvider->addMessage(new Message($this->colorizer, $this->colorizer->linesUp(6)));
-                $this->messageProvider->getFirstMessage(true);
+
+                $this->messageProvider->addMessage(
+                    (new Message($this->colorizer))->setPromtMessage("")
+                );
+
+                //Latency
+                $this->messageProvider->addMessage(
+                    (new Message($this->colorizer))->setKeyValueCombinesMessage("Latency: ", $timer->getAverageTimePerTick())
+                );
+
+                //Systemtime
+                $this->messageProvider->addMessage(
+                    (new Message($this->colorizer))->setKeyValueCombinesMessage("System time: ", date("Y-m-d H:i:s"))
+                );
+
+                //Uptime
+                $this->messageProvider->addMessage(
+                    (new Message($this->colorizer))->setKeyValueCombinesMessage("Uptime: ", gmdate("H:i:s", time() - $this->systemStartTime))
+                );
+
+                //System Load
+                $this->messageProvider->addMessage(
+                    (new Message($this->colorizer))->setKeyValueCombinesMessage("System Load: ", $this->loadMonitor->getServerLoad())
+                );
+
             }
+            */
 
             //wait until 1 ms is over
             //performance tweak, DO NOT REMOVE
@@ -179,14 +211,18 @@ class PHPApplicationServer {
     /**
      *
      */
+    public function stop() {
+        $this->running = false;
+    }
+
+    /**
+     *
+     */
     public function shutdown() {
         $this->messageProvider->addMessage(new Message($this->colorizer, $this->colorizer->linesDown(6)));
-        $this->messageProvider->getFirstMessage(true);
 
-        $msg = new Message($this->colorizer);
-        $msg->setMessage("Shutting down ...", Colorizer::FG_ORANGE);
-        $this->messageProvider->addMessage($msg);
-        $this->messageProvider->getFirstMessage(true);
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("Shutting down ...", Colorizer::FG_ORANGE));
+        $this->messageProvider->publishAll();
 
         $this->listenerManager->shutdown();
 
@@ -197,11 +233,8 @@ class PHPApplicationServer {
      *
      */
     public function __destruct() {
-
-        $msg = new Message($this->colorizer);
-        $msg->setMessage("Destructor called ...", Colorizer::FG_ORANGE);
-        $this->messageProvider->addMessage($msg);
-        $this->messageProvider->getFirstMessage(true);
+        $this->messageProvider->addMessage((new Message($this->colorizer))->setPromtMessage("Destructor called ...", Colorizer::FG_ORANGE));
+        $this->messageProvider->publishAll();
 
         $this->shutdown();
     }

@@ -44,9 +44,20 @@ class Message {
     }
 
     /**
-     * @param $message
+     * @return $this
+     */
+    public function setPromtInput() {
+        $this->message = $this->colorizer->colorize("> ", Colorizer::FG_CYAN);
+
+        return $this;
+    }
+
+    /**
+     * @param string $message
      * @param string $customColor
      * @param bool $linebreak
+     *
+     * @return $this
      */
     public function setPromtMessage($message, $customColor = Colorizer::FG_CYAN, $linebreak = true) {
         $this->message = $this->colorizer->colorize("| ", Colorizer::FG_CYAN);
@@ -54,27 +65,37 @@ class Message {
         if($linebreak) {
             $this->message .= PHP_EOL;
         }
+
+        return $this;
     }
 
     /**
      * @param string $message
      * @param string $customColor
      * @param bool $linebreak
+     *
+     * @return $this
      */
     public function setMessage($message, $customColor = Colorizer::FG_CYAN, $linebreak = true) {
         $this->message .= $this->colorizer->colorize($message, $customColor);
         if($linebreak) {
             $this->message .= PHP_EOL;
         }
+
+        return $this;
     }
 
     /**
      * @param $key
      * @param $value
+     *
+     * @return $this
      */
     public function setKeyValueCombinesMessage($key, $value) {
         $this->setPromtMessage($key, Colorizer::FG_CYAN, false);
         $this->setMessage($value, Colorizer::FG_ORANGE);
+
+        return $this;
     }
 
     /**

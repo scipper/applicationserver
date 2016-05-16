@@ -15,11 +15,6 @@ use Scipper\Colorizer\Colorizer;
 class MessageProvider {
 
     /**
-     * @var Colorizer
-     */
-    protected $colorizer;
-
-    /**
      * @var array
      */
     protected $messageQueue;
@@ -43,16 +38,13 @@ class MessageProvider {
     /**
      * MessageProvider constructor.
      *
-     * @param Colorizer $colorizer
      * @param MessageQueue $messageQueue
-     * @param int $provideInterval
+     * @param float $provideInterval
      */
-    public function __construct(Colorizer $colorizer, MessageQueue $messageQueue, $provideInterval = 1) {
-        $this->colorizer = $colorizer;
+    public function __construct(MessageQueue $messageQueue, $provideInterval = .01) {
         $this->messageQueue = $messageQueue;
         $this->provideInterval = $provideInterval;
         $this->timer = 0.0;
-        $this->separator = "___________________________________";
     }
 
     /**
@@ -79,67 +71,21 @@ class MessageProvider {
     }
 
     /**
-     * @param Message $message
+     * 
      */
-    public function addMessage(Message $message) {
-        $this->messageQueue->addMessage($message);
-    }
-
-    /**
-     * @param $msg
-     * @param string $customColor
-     */
-    public function getCustomMessage($msg, $customColor = Colorizer::FG_CYAN, $linebreak = true) {
-        $this->colorizer->cecho($msg, $customColor);
-        if($linebreak) {
-            echo PHP_EOL;
+    public function publishAll() {
+        $messagesRead = 0;
+        while(($message = $this->messageQueue->getFirstMessage()) !== null && $messagesRead < 100) {
+            $messagesRead++;
+            echo $message;
         }
     }
 
     /**
-     * @param $msg
-     * @param string $customColor
+     * @param Message $message
      */
-    public function getCustomPromtMessage($msg, $customColor = Colorizer::FG_CYAN, $linebreak = true) {
-        $this->colorizer->cecho("| ", Colorizer::FG_CYAN);
-        $this->getCustomMessage($msg, $customColor, $linebreak);
-    }
-
-    /**
-     *
-     */
-    public function getWelcomeMessage() {
-        $this->getCustomMessage("");
-        $this->getCustomMessage("");
-        $this->getCustomPromtMessage("Welcome to ");
-        $this->getCustomPromtMessage("PHP Application Server ", Colorizer::FG_GREEN);
-        $this->getCustomPromtMessage($this->separator);
-        $this->getCustomPromtMessage("");
-    }
-
-    /**
-     *
-     */
-    public function getPromt() {
-        $this->colorizer->cecho("> ", Colorizer::FG_CYAN);
-    }
-
-    /**
-     *
-     */
-    public function getBootMessage() {
-        $this->getCustomPromtMessage("Booting ...");
-        $this->getCustomPromtMessage("");
-    }
-
-    /**
-     *
-     */
-    public function getReadyMessage() {
-        $this->getCustomPromtMessage($this->separator);
-        $this->getCustomPromtMessage("");
-        $this->getCustomPromtMessage("PHP Application Server is up and running");
-        $this->getCustomPromtMessage("");
+    public function addMessage(Message $message) {
+        $this->messageQueue->addMessage($message);
     }
 
 }

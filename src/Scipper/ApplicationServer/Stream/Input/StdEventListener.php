@@ -14,40 +14,15 @@ class StdEventListener implements InputEventListenerInterface {
 
     /**
      *
-     * @var KeyMapperInterface
+     * @var string
      */
-    protected $key;
-
-    /**
-     *
-     * @var array
-     */
-    protected $read;
-
-    /**
-     *
-     * @var array
-     */
-    protected $write;
-
-    /**
-     *
-     * @var array
-     */
-    protected $except;
-
-    /**
-     *
-     * @var integer
-     */
-    protected $streamSelectResult;
+    protected $stream;
 
     /**
      *
      */
     public function __construct() {
         stream_set_blocking(STDIN, 0);
-        readline_callback_handler_install('', function() { });
     }
 
     /**
@@ -55,16 +30,9 @@ class StdEventListener implements InputEventListenerInterface {
      * @return boolean
      */
     public function listen() {
-        $this->read = array(STDIN);
-        $this->write = NULL;
-        $this->except = NULL;
-        $this->streamSelectResult = stream_select($this->read, $this->write, $this->except, 0);
-        if($this->streamSelectResult && in_array(STDIN, $this->read)) {
-            $c = stream_get_contents(STDIN, 1024);
-            $value = unpack('H*', strtolower($c));
-
-            $this->setKey(new StdInKeys($value[1]));
-
+        $stream = stream_get_contents(STDIN);
+        if(!is_null($stream) && !empty($stream)) {
+            $this->stream = trim($stream);
             return true;
         }
 
@@ -72,26 +40,17 @@ class StdEventListener implements InputEventListenerInterface {
     }
 
     /**
-     *
-     * @param KeyMapperInterface $key
+     * @return string
      */
-    public function setKey(KeyMapperInterface $key) {
-        $this->key = $key;
-    }
-
-    /**
-     *
-     * @return KeyMapperInterface
-     */
-    public function getKey() {
-        return $this->key;
+    public function getStream() {
+        return $this->stream;
     }
 
     /**
      *
      */
     public function reset() {
-        $this->key = NULL;
+        $this->stream = NULL;
     }
 
 }

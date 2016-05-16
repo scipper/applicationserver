@@ -16,5 +16,6 @@ class ExceptionRegister {
     const NETWORK_AUTHORITY_NOT_FOUND = 10001;
 
     const SYSTEM_OS_NOT_SUPPORTED = 50000;
+    const SYSTEM_MAPPING_NOT_FOUND = 50001;
 
 }

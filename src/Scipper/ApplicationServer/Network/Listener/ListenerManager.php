@@ -4,6 +4,7 @@ namespace Scipper\ApplicationServer\Network\Listener;
 
 use Scipper\ApplicationServer\Network\Listener\Exceptions\AuthorityAlreadyInUse;
 use Scipper\ApplicationServer\Network\Listener\Exceptions\AuthorityNotFound;
+use Scipper\ApplicationServer\Stream\Output\Message;
 use Scipper\ApplicationServer\Stream\Output\MessageProvider;
 use Scipper\Colorizer\Colorizer;
 
@@ -30,6 +31,8 @@ class ListenerManager {
 
     /**
      * ListenerManager constructor.
+     *
+     * @param MessageProvider $ssmp
      */
     public function __construct(MessageProvider $ssmp) {
         $this->listener = array();
@@ -52,7 +55,8 @@ class ListenerManager {
 
         $this->listener[$authority] = new Listener($address, $port);
 
-        $this->ssmp->getCustomMessage('Listener for authority "' . $authority . '" successfully added to ListenerManager.', Colorizer::FG_GREEN);
+        $this->ssmp->addMessage((new Message($this->colorizer))->setPromtMessage("PHP Application Server is up and running"));
+        $this->ssmp->addMessage('Listener for authority "' . $authority . '" successfully added to ListenerManager.', Colorizer::FG_GREEN);
         if($openInstant) {
             $this->startListener($address, $port);
         }
